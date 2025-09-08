@@ -15,6 +15,8 @@ import java.util.UUID;
                 )
         }
 )
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
 @Getter
 @Setter
@@ -23,7 +25,7 @@ public class OrderItemEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @EqualsAndHashCode.Include
-    private UUID itemId;
+    private UUID orderItemId;
     private String name;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
@@ -34,5 +36,8 @@ public class OrderItemEntity {
     @ManyToOne()
     @JoinColumn(name = "orderId", nullable = false)
     private OrderEntity order;
-
+    @Column(nullable = false)
+    private UUID menuId;
+    @Column(nullable = false)
+    private UUID menuItemId;
 }

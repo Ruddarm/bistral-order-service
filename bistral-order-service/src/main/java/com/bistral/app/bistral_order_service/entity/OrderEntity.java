@@ -5,18 +5,21 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
 @Entity
 @Getter
 @Setter
 @Table(name = "Orders",
-        indexes ={
-            @Index( name = "orderId_BistroId_",
-            columnList = "bistroId, branchId"
-            )
+        indexes = {
+                @Index(name = "orderId_BistroId_",
+                        columnList = "bistroId, branchId"
+                )
         }
 )
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -35,10 +38,10 @@ public class OrderEntity {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal discount;
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal tax;
+    private BigDecimal taxableAmount;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal payableAmount;
-    private String OrderType;
+    private String orderType;
     @OneToMany(mappedBy = "order")
-    private List<OrderItemEntity> orderItemList;
+    private List<OrderItemEntity> orderItemList = new ArrayList<>();
 }
