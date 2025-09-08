@@ -5,18 +5,19 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
 @Entity
 @Getter
 @Setter
 @Table(name = "Orders",
-        indexes ={
-            @Index( name = "orderId_BistroId_",
-            columnList = "bistroId, branchId"
-            )
+        indexes = {
+                @Index(name = "orderId_BistroId_",
+                        columnList = "bistroId, branchId"
+                )
         }
 )
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -35,10 +36,23 @@ public class OrderEntity {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal discount;
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal tax;
+    private BigDecimal taxableAmount;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal payableAmount;
-    private String OrderType;
-    @OneToMany(mappedBy = "order")
-    private List<OrderItemEntity> orderItemList;
+    private String orderType;
+    @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @MapKey(name = "orderItemId")
+    private Map<UUID, OrderItemEntity> orderItemMap = new HashMap<>();
+
+    public void reCalcTotals() {
+        this.totalAmount = orderItemMap.values().stream()
+                .map(OrderItemEntity::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        this.taxableAmount = orderItemMap.values().stream()
+                .map(OrderItemEntity::getTaxableAmount)
+                .reduce(BigDecimal.ZERO,BigDecimal::add);
+        this.payableAmount=this.payableAmount.subtract(this.taxableAmount);
+    }
+
+
 }
