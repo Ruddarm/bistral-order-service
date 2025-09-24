@@ -1,6 +1,7 @@
 package com.bistral.app.bistral_order_service.dtos;
 
 
+import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,8 +19,10 @@ import java.util.UUID;
 public class OrderResponse {
     private UUID orderId;
     private UUID bistroId;
+    private UUID tableId;
     private UUID branchId;
     private int tableNo;
+    private OrderStatus orderStatus;
     private BigDecimal totalAmount;
     private BigDecimal discount;
     private BigDecimal taxableAmount;

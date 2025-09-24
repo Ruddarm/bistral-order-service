@@ -1,6 +1,7 @@
 package com.bistral.app.bistral_order_service.entity;
 
 
+import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,6 +30,8 @@ public class OrderEntity {
     @Column(nullable = false)
     private UUID bistroId;
     @Column(nullable = false)
+    private UUID tableId;
+    @Column(nullable = false)
     private UUID branchId;
     private int tableNo;
     @Column(nullable = false, precision = 10, scale = 2)
@@ -40,6 +43,9 @@ public class OrderEntity {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal payableAmount;
     private String orderType;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private OrderStatus orderStatus=OrderStatus.Open;
     @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @MapKey(name = "orderItemId")
     private Map<UUID, OrderItemEntity> orderItemMap = new HashMap<>();

@@ -1,10 +1,10 @@
 package com.bistral.app.bistral_order_service.service;
 
-
 import com.bistral.app.bistral_order_service.controllers.OrderItemMapper;
 import com.bistral.app.bistral_order_service.dtos.*;
 import com.bistral.app.bistral_order_service.entity.OrderEntity;
 import com.bistral.app.bistral_order_service.entity.OrderItemEntity;
+import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
 import com.bistral.app.bistral_order_service.exceptions.ResourceNotFoundException;
 import com.bistral.app.bistral_order_service.mapperInterface.OrderMapper;
 import com.bistral.app.bistral_order_service.openfeignclients.BistroFeignClient;
@@ -17,9 +17,9 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -42,11 +42,14 @@ public class OrderService {
 
         OrderEntity orderEntity = orderMapper.toOrderEntity(orderRequest);
         CompletableFuture<BranchResponse> branchResponseCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getBranch(orderRequest.getBistroId(), orderRequest.getBranchId()));
-        orderEntity.setTableNo(0);
+        orderEntity.setTableNo(orderRequest.getTableNo());
+        orderEntity.setTableId(orderRequest.getTableId());
+//        System.out.println("Table  id : "+orderRequest.getTableId());
         orderEntity.setDiscount(new BigDecimal(0));
         orderEntity.setPayableAmount(new BigDecimal(0));
         orderEntity.setTotalAmount(new BigDecimal(0));
         orderEntity.setTaxableAmount(new BigDecimal(0));
+        orderEntity.setOrderStatus(OrderStatus.Open);
         OrderEntity finalOrderEntity1 = orderEntity;
         CompletableFuture<OrderEntity> orderEntityCompletableFuture = CompletableFuture.supplyAsync(() -> orderRepository.save(finalOrderEntity1));
         BranchResponse branchResponse = branchResponseCompletableFuture.join();
@@ -92,7 +95,7 @@ public class OrderService {
         orderItemEntity.setOrder(orderEntity);
         orderItemEntity.setQty(new BigDecimal(orderItemRequest.getQty()));
         orderItemEntity.setPrice(menuItemVariantResponse.getPrice());
-        orderEntity.getOrderItemMap().put(orderItemEntity.getOrderItemId(),orderItemEntity);
+        orderEntity.getOrderItemMap().put(orderItemEntity.getOrderItemId(), orderItemEntity);
         orderEntity.reCalcTotals();
         orderItemRepository.save(orderItemEntity);
         orderRepository.save(orderEntity);
@@ -109,5 +112,44 @@ public class OrderService {
     public OrderEntity getOrderByOrderId(UUID orderId) {
         return orderRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "Order not found with Order Id : " + orderId));
+    }
+
+    public List<OrderResponse> getAllOrderOfBistro(UUID branchId) {
+        CompletableFuture<List<TableResponse>> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(branchId));
+        List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(branchId, OrderStatus.Open);
+        System.out.println("Size of tables "+listCompletableFuture.join().size());
+        for(TableResponse tableResponse : listCompletableFuture.join()){
+            System.out.println(tableResponse.getTableId());
+        }
+//        Set<UUID> validTables = listCompletableFuture.join().stream().map(TableResponse::getTableId).collect(Collectors.toSet());
+        Map<UUID, OrderEntity> orderMap = orderEntityList.stream().collect(Collectors.toMap(OrderEntity::getTableId, o -> o));
+        return listCompletableFuture.join().stream()
+                .map(tableResponse -> {
+                    OrderEntity orderEntity = orderMap.get(tableResponse.getTableId());
+                    if (orderEntity == null) {
+                        return OrderResponse.builder()
+                                .tableId(tableResponse.getTableId())
+                                .tableNo(tableResponse.getTableNo())
+                                .totalAmount(new BigDecimal(0))
+                                .taxableAmount(new BigDecimal(0))
+                                .branchId(branchId)
+                                .discount(BigDecimal.ZERO)
+                                .orderStatus(OrderStatus.Vacant)
+                                .orderItemList(new ArrayList<>())
+                                .build();
+                    } else {
+                        OrderResponse orderResponse = orderMapper.toOrderResponse(orderEntity);
+                        orderResponse.setTableId(tableResponse.getTableId());
+                        orderResponse.setTableNo(tableResponse.getTableNo());
+                        orderResponse.setOrderStatus(orderEntity.getOrderStatus());
+                        List<OrderItemResponse> orderItemResponses = orderEntity.getOrderItemMap().values()
+                                .stream()
+                                .map(orderItemEntity -> orderItemMapper.toOrderItemResponse(orderItemEntity))
+                                .toList();
+                        orderResponse.setOrderItemList(orderItemResponses);
+                        return orderResponse;
+                    }
+                })
+                .toList();
     }
 }

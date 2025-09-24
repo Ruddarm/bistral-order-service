@@ -33,6 +33,8 @@ public class OrderController {
         return ResponseEntity.ok(orderService.createOrder(orderRequest));
     }
 
+
+
     @PostMapping("/add/item")
     public ResponseEntity<OrderResponse> addItem(@Valid @RequestBody OrderItemRequest orderItemRequest) {
         return ResponseEntity.ok(orderService.addItemOrderInOrder(orderItemRequest));
@@ -43,6 +45,7 @@ public class OrderController {
         return ResponseEntity.ok(orderService.updateOrderItemInOrder(orderItemRequest));
     }
 
+
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getOrder(@PathVariable UUID orderId) {
         OrderEntity orderEntity = orderService.getOrderByOrderId(orderId);
@@ -52,8 +55,15 @@ public class OrderController {
             itemResponseList.add(orderItemMapper.toOrderItemResponse(orderItemEntity));
         });
         OrderResponse orderResponse = orderMapper.toOrderResponse(orderEntity);
+        orderResponse.setTableId(orderEntity.getTableId());
+        orderResponse.setTableNo(orderEntity.getTableNo());
+        orderResponse.setOrderStatus(orderEntity.getOrderStatus());
         orderResponse.setOrderItemList(itemResponseList);
         return ResponseEntity.ok(orderResponse);
+    }
+    @GetMapping("/branch/{branchId}/order/all")
+    public List<OrderResponse> getActiveOrders(@PathVariable UUID branchId){
+        return  orderService.getAllOrderOfBistro(branchId);
     }
 
 

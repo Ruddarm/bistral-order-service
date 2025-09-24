@@ -17,6 +17,8 @@ public class OrderRequest {
     @NotNull
     private UUID branchId;
     @NotNull
+    private  UUID tableId;
+    @NotNull
     @Min(0)
     private int tableNo;
     @NotEmpty
