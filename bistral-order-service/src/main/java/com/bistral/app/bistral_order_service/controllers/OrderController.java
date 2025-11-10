@@ -1,10 +1,7 @@
 package com.bistral.app.bistral_order_service.controllers;
 
 
-import com.bistral.app.bistral_order_service.dtos.OrderItemRequest;
-import com.bistral.app.bistral_order_service.dtos.OrderItemResponse;
-import com.bistral.app.bistral_order_service.dtos.OrderRequest;
-import com.bistral.app.bistral_order_service.dtos.OrderResponse;
+import com.bistral.app.bistral_order_service.dtos.*;
 import com.bistral.app.bistral_order_service.entity.OrderEntity;
 import com.bistral.app.bistral_order_service.mapperInterface.OrderMapper;
 import com.bistral.app.bistral_order_service.service.OrderService;
@@ -33,11 +30,14 @@ public class OrderController {
         return ResponseEntity.ok(orderService.createOrder(orderRequest));
     }
 
-
-
     @PostMapping("/add/item")
     public ResponseEntity<OrderResponse> addItem(@Valid @RequestBody OrderItemRequest orderItemRequest) {
         return ResponseEntity.ok(orderService.addItemOrderInOrder(orderItemRequest));
+    }
+
+    @PostMapping("/add/item/bulk")
+    public ResponseEntity<OrderResponse> addItems(@Valid @RequestBody BulkOrderItemRequest bulkOrderItemRequest) {
+        return ResponseEntity.ok(orderService.addBulkItemOrderInOrder(bulkOrderItemRequest));
     }
 
     @PatchMapping("/update/item")
@@ -61,9 +61,10 @@ public class OrderController {
         orderResponse.setOrderItemList(itemResponseList);
         return ResponseEntity.ok(orderResponse);
     }
+
     @GetMapping("/branch/{branchId}/order/all")
-    public List<OrderResponse> getActiveOrders(@PathVariable UUID branchId){
-        return  orderService.getAllOrderOfBistro(branchId);
+    public List<OrderResponse> getActiveOrders(@PathVariable UUID branchId) {
+        return orderService.getAllOrderOfBistro(branchId);
     }
 
 

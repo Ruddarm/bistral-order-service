@@ -79,7 +79,9 @@ public class OrderService {
         return orderResponse;
     }
 
-
+    /*
+        Add single item in order
+     */
     public OrderResponse addItemOrderInOrder(OrderItemRequest orderItemRequest) {
         CompletableFuture<MenuItemVariantResponse> menuItemVariantResponseCompletableFuture = CompletableFuture.supplyAsync(()
                 -> bistroFeignClient.getItem(orderItemRequest.getMenuItemId(), orderItemRequest.getVariantId())
@@ -108,6 +110,46 @@ public class OrderService {
         return orderResponse;
     }
 
+    /*
+        Add item in bulk in order
+     */
+    public OrderResponse addBulkItemOrderInOrder(BulkOrderItemRequest bulkOrderItemRequest) {
+        List<CompletableFuture<MenuItemVariantResponse>> futuresMenu =
+                bulkOrderItemRequest.items()
+                        .stream()
+                        .map(orderItemRequest -> CompletableFuture
+                                .supplyAsync(() -> bistroFeignClient.getItem(orderItemRequest.getMenuItemId(), orderItemRequest.getVariantId())))
+                        .toList();
+        OrderEntity orderEntity = getOrderByOrderId(bulkOrderItemRequest.orderId());
+        List<MenuItemVariantResponse> itemVariantResponses = futuresMenu.stream()
+                .map((completableFuture) -> completableFuture.join())
+                .toList();
+        List<OrderItemEntity> newOrderItem = new ArrayList<>();
+        for (int i = 0; i < bulkOrderItemRequest.items().size(); i++) {
+            OrderItemRequest orderItemRequest = bulkOrderItemRequest.items().get(i);
+            MenuItemVariantResponse menuItemVariantResponse = itemVariantResponses.get(i);
+            OrderItemEntity orderItemEntity = orderItemMapper.toOrderItemEntity(orderItemRequest);
+            orderItemEntity.setName(menuItemVariantResponse.getItemName());
+            orderItemEntity.setMenuItemId(menuItemVariantResponse.getItemId());
+            orderItemEntity.setUnit(menuItemVariantResponse.getUnit());
+            orderItemEntity.setTaxRate(menuItemVariantResponse.getTaxRate());
+            orderItemEntity.setQty(BigDecimal.valueOf(orderItemRequest.getQty()));
+            orderItemEntity.setOrder(orderEntity);
+            orderItemEntity.setPrice(menuItemVariantResponse.getPrice());
+            orderEntity.getOrderItemMap().put(UUID.randomUUID(), orderItemEntity);
+            newOrderItem.add(orderItemEntity);
+        }
+        orderItemRepository.saveAll(newOrderItem);
+        orderEntity.reCalcTotals();
+        orderEntity = orderRepository.save(orderEntity);
+        List<OrderItemResponse> orderItemResponseList = orderEntity.getOrderItemMap().values()
+                .stream()
+                .map(orderItemMapper::toOrderItemResponse)
+                .toList();
+        OrderResponse orderResponse = orderMapper.toOrderResponse(orderEntity);
+        orderResponse.setOrderItemList(orderItemResponseList);
+        return orderResponse;
+    }
 
     public OrderEntity getOrderByOrderId(UUID orderId) {
         return orderRepository.findByOrderId(orderId)
@@ -117,8 +159,8 @@ public class OrderService {
     public List<OrderResponse> getAllOrderOfBistro(UUID branchId) {
         CompletableFuture<List<TableResponse>> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(branchId));
         List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(branchId, OrderStatus.Open);
-        System.out.println("Size of tables "+listCompletableFuture.join().size());
-        for(TableResponse tableResponse : listCompletableFuture.join()){
+        System.out.println("Size of tables " + listCompletableFuture.join().size());
+        for (TableResponse tableResponse : listCompletableFuture.join()) {
             System.out.println(tableResponse.getTableId());
         }
 //        Set<UUID> validTables = listCompletableFuture.join().stream().map(TableResponse::getTableId).collect(Collectors.toSet());

@@ -20,16 +20,22 @@ public class OrderItemEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     @EqualsAndHashCode.Include
     private UUID orderItemId;
+    //store items name
     private String name;
+    //item price
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
+    // item tax rate
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal taxRate;
+    // item ordered qty
     @Column(nullable = false)
     private BigDecimal qty;
+    // item unit
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private ItemUnit unit;
+    //order id
     @ManyToOne()
     @JoinColumn(name = "orderId", nullable = false)
     private OrderEntity order;
