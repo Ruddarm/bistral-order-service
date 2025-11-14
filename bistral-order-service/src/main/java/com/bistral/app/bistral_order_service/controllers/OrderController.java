@@ -3,6 +3,7 @@ package com.bistral.app.bistral_order_service.controllers;
 
 import com.bistral.app.bistral_order_service.dtos.*;
 import com.bistral.app.bistral_order_service.entity.OrderEntity;
+import com.bistral.app.bistral_order_service.mapperInterface.OrderItemMapper;
 import com.bistral.app.bistral_order_service.mapperInterface.OrderMapper;
 import com.bistral.app.bistral_order_service.service.OrderService;
 import jakarta.validation.Valid;
@@ -45,6 +46,10 @@ public class OrderController {
         return ResponseEntity.ok(orderService.updateOrderItemInOrder(orderItemRequest));
     }
 
+    @PatchMapping("/update/item/bulk")
+    public ResponseEntity<OrderResponse> updateItemInBulk(@Valid @RequestBody UpdateOrderItemRequestBulk updateOrderItemRequestBulk) {
+        return ResponseEntity.ok(orderService.updateOrderItemInOrderBulk(updateOrderItemRequestBulk));
+    }
 
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getOrder(@PathVariable UUID orderId) {

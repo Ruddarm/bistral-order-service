@@ -30,7 +30,7 @@ public class OrderItemEntity {
     private BigDecimal taxRate;
     // item ordered qty
     @Column(nullable = false)
-    private BigDecimal qty;
+    private BigDecimal orderedQty;
     // item unit
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -47,6 +47,6 @@ public class OrderItemEntity {
     }
 
     public BigDecimal getTotalPrice() {
-        return this.price.multiply(this.qty);
+        return this.price.multiply(this.orderedQty);
     }
 }

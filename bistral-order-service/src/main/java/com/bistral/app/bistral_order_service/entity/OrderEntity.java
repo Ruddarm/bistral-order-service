@@ -35,7 +35,7 @@ public class OrderEntity {
     private UUID branchId;
     private int tableNo;
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount;
+    private BigDecimal taxAmount;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal discount;
     @Column(nullable = false, precision = 10, scale = 2)
@@ -45,19 +45,19 @@ public class OrderEntity {
     private String orderType;
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private OrderStatus orderStatus=OrderStatus.Open;
+    private OrderStatus orderStatus = OrderStatus.Open;
     @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @MapKey(name = "orderItemId")
     private Map<UUID, OrderItemEntity> orderItemMap = new HashMap<>();
 
     public void reCalcTotals() {
-        this.totalAmount = orderItemMap.values().stream()
+        this.taxableAmount = orderItemMap.values().stream()
                 .map(OrderItemEntity::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        this.taxableAmount = orderItemMap.values().stream()
+        this.taxAmount = orderItemMap.values().stream()
                 .map(OrderItemEntity::getTaxableAmount)
-                .reduce(BigDecimal.ZERO,BigDecimal::add);
-        this.payableAmount=this.payableAmount.subtract(this.taxableAmount);
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        this.payableAmount = this.taxableAmount.subtract(this.taxAmount);
     }
 
 

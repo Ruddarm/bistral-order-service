@@ -23,6 +23,6 @@ public class OrderItemRequest {
     private UUID variantId;
     @NotNull
     @Min(1)
-    private Double qty;
+    private Double orderedQty;
 
 }

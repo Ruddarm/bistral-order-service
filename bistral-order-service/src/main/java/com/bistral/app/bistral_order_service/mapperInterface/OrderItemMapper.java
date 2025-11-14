@@ -1,4 +1,4 @@
-package com.bistral.app.bistral_order_service.controllers;
+package com.bistral.app.bistral_order_service.mapperInterface;
 
 import com.bistral.app.bistral_order_service.dtos.OrderItemRequest;
 import com.bistral.app.bistral_order_service.dtos.OrderItemResponse;

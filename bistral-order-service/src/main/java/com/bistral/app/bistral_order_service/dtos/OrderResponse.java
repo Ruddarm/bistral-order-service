@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +22,7 @@ public class OrderResponse {
     private UUID branchId;
     private int tableNo;
     private OrderStatus orderStatus;
-    private BigDecimal totalAmount;
+    private BigDecimal taxAmount;
     private BigDecimal discount;
     private BigDecimal taxableAmount;
     private BigDecimal payableAmount;

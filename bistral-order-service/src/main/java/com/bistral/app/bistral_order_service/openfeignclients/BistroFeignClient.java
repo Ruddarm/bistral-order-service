@@ -1,6 +1,4 @@
 package com.bistral.app.bistral_order_service.openfeignclients;
-
-
 import java.util.UUID;
 import com.bistral.app.bistral_order_service.dtos.BranchResponse;
 import com.bistral.app.bistral_order_service.dtos.MenuItemVariantResponse;

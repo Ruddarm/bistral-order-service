@@ -21,7 +21,7 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
     @Query("select o from OrderEntity o left join fetch o.orderItemMap where o.orderId = :orderId")
     public Optional<OrderEntity> findByOrderId(@Param("orderId") UUID orderId);
     @Modifying
-    @Query("UPDATE OrderEntity o SET o.totalAmount = :total, o.taxableAmount = :taxable, o.payableAmount = :payable WHERE o.orderId = :orderId")
+    @Query("UPDATE OrderEntity o SET o.taxAmount = :total, o.taxableAmount = :taxable, o.payableAmount = :payable WHERE o.orderId = :orderId")
     void updateTotals(UUID orderId, BigDecimal total, BigDecimal taxable, BigDecimal payable);
 
     List<OrderEntity> findByBranchIdAndOrderStatus(UUID branchId, OrderStatus status);

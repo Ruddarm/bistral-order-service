@@ -19,6 +19,6 @@ public class OrderItemResponse {
     private String name;
     private BigDecimal price;
     private BigDecimal taxRate;
-    private BigDecimal qty;
+    private BigDecimal orderedQty;
 
 }
