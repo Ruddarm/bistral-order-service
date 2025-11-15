@@ -137,7 +137,7 @@ public class OrderService {
                         .toList();
         OrderEntity orderEntity = getOrderByOrderId(bulkOrderItemRequest.orderId());
         List<MenuItemVariantResponse> itemVariantResponses = futuresMenu.stream()
-                .map((completableFuture) -> completableFuture.join())
+                .map(CompletableFuture::join)
                 .toList();
         List<OrderItemEntity> newOrderItem = new ArrayList<>();
         for (int i = 0; i < bulkOrderItemRequest.items().size(); i++) {
@@ -166,6 +166,22 @@ public class OrderService {
         return orderResponse;
     }
 
+    //Remove Item from the given order
+    @Transactional
+    public OrderResponse deleteItemFromOrder(UUID orderId, UUID orderItemId) {
+        OrderEntity orderEntity = getOrderByOrderId(orderId);
+        if (!orderEntity.getOrderItemMap().containsKey(orderItemId))
+            throw new ResourceNotFoundException("orderItem", "Order Item " + orderItemId + " for Order Id " + orderId + "Not found");
+        orderEntity.getOrderItemMap().remove(orderItemId);
+        orderEntity.reCalcTotals();
+        System.out.println(orderEntity.getTaxableAmount());
+        orderRepository.save(orderEntity);
+        OrderEntity order = getOrderByOrderId(orderId);
+        OrderResponse orderResponse = orderMapper.toOrderResponse(order);
+        orderResponse.setOrderItemList(order.getOrderItemMap().values().stream().map(orderItemMapper::toOrderItemResponse).toList());
+        return orderResponse;
+    }
+
     public OrderEntity getOrderByOrderId(UUID orderId) {
         return orderRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "Order not found with Order Id : " + orderId));
@@ -174,9 +190,8 @@ public class OrderService {
     public List<OrderResponse> getAllOrderOfBistro(UUID branchId) {
         CompletableFuture<List<TableResponse>> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(branchId));
         List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(branchId, OrderStatus.Open);
-        System.out.println("Size of tables " + listCompletableFuture.join().size());
+//        System.out.println("Size of tables " + listCompletableFuture.join().size());
         listCompletableFuture.join()
-                .stream()
                 .forEach(s -> System.out.println(s.getTableId()));
         Map<UUID, OrderEntity> orderMap = orderEntityList.stream().collect(Collectors.toMap(OrderEntity::getTableId, o -> o));
         return listCompletableFuture.join().stream()
@@ -200,7 +215,7 @@ public class OrderService {
                         orderResponse.setOrderStatus(orderEntity.getOrderStatus());
                         List<OrderItemResponse> orderItemResponses = orderEntity.getOrderItemMap().values()
                                 .stream()
-                                .map(orderItemEntity -> orderItemMapper.toOrderItemResponse(orderItemEntity))
+                                .map(orderItemMapper::toOrderItemResponse)
                                 .toList();
                         orderResponse.setOrderItemList(orderItemResponses);
                         return orderResponse;

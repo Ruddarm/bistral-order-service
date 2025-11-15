@@ -51,6 +51,11 @@ public class OrderController {
         return ResponseEntity.ok(orderService.updateOrderItemInOrderBulk(updateOrderItemRequestBulk));
     }
 
+    @DeleteMapping("/{orderId}/item/{orderItemId}")
+    public ResponseEntity<OrderResponse> removeItemFromOrder(@PathVariable UUID orderId, @PathVariable UUID orderItemId) {
+        return ResponseEntity.ok(orderService.deleteItemFromOrder(orderId, orderItemId));
+    }
+
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getOrder(@PathVariable UUID orderId) {
         OrderEntity orderEntity = orderService.getOrderByOrderId(orderId);
