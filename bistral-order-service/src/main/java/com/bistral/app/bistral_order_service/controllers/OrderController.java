@@ -60,7 +60,7 @@ public class OrderController {
     public ResponseEntity<OrderResponse> getOrder(@PathVariable UUID orderId) {
         OrderEntity orderEntity = orderService.getOrderByOrderId(orderId);
         List<OrderItemResponse> itemResponseList = new ArrayList<>();
-        orderEntity.getOrderItemMap().values().forEach((orderItemEntity) -> {
+        orderEntity.getOrderItemEntityList().forEach((orderItemEntity) -> {
             System.out.println(orderItemEntity);
             itemResponseList.add(orderItemMapper.toOrderItemResponse(orderItemEntity));
         });
@@ -76,6 +76,7 @@ public class OrderController {
     public List<OrderResponse> getActiveOrders(@PathVariable UUID branchId) {
         return orderService.getAllOrderOfBistro(branchId);
     }
+
 
 
 }

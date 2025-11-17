@@ -12,11 +12,14 @@ import com.bistral.app.bistral_order_service.repository.OrderItemRepository;
 import com.bistral.app.bistral_order_service.repository.OrderRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.annotations.CurrentTimestamp;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -27,8 +30,10 @@ public class OrderService {
     private final OrderItemMapper orderItemMapper;
     private final BistroFeignClient bistroFeignClient;
     private final OrderRepository orderRepository;
+
     private final OrderItemRepository orderItemRepository;
 
+    private final ConcurrentHashMap<UUID, OrderEntity> activeOrderMap = new ConcurrentHashMap<>();
 
     /*
         create a new order for given bistro with branch
@@ -50,6 +55,8 @@ public class OrderService {
         CompletableFuture<OrderEntity> orderEntityCompletableFuture = CompletableFuture.supplyAsync(() -> orderRepository.save(finalOrderEntity1));
         BranchResponse branchResponse = branchResponseCompletableFuture.join();
         orderEntity = orderEntityCompletableFuture.join();
+        orderEntity.setOrderItemEntityList(new ArrayList<>());
+        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
         if (!orderEntity.getBranchId().equals(branchResponse.getBranchId())) {
             orderRepository.delete(orderEntity);
             throw new ResourceNotFoundException("Bistro Branch", "Invalid Bistro / Branch id");
@@ -60,13 +67,18 @@ public class OrderService {
     @Transactional
     public OrderResponse updateOrderItemInOrder(OrderItemRequest orderItemRequest) {
         OrderEntity orderEntity = getOrderByOrderId(orderItemRequest.getOrderId());
-        OrderItemEntity orderItemEntity = orderEntity.getOrderItemMap().get(orderItemRequest.getOrderItemId());
+        OrderItemEntity orderItemEntity = orderEntity
+                .getOrderItemEntityList()
+                .stream()
+                .filter((oi) -> oi.getOrderItemId() == orderItemRequest.getOrderItemId())
+                .findFirst()
+                .orElse(null);
         if (orderItemEntity == null)
             throw new ResourceNotFoundException("orderItem", "order item not found with Id : " + orderItemRequest.getOrderItemId());
         orderItemEntity.setOrderedQty(new BigDecimal(orderItemRequest.getOrderedQty()));
         orderItemEntity.setPrice(orderItemEntity.getPrice());
         orderEntity.reCalcTotals();
-        List<OrderItemResponse> orderItemResponseList = orderEntity.getOrderItemMap().values()
+        List<OrderItemResponse> orderItemResponseList = orderEntity.getOrderItemEntityList()
                 .stream()
                 .map(orderItemMapper::toOrderItemResponse)
                 .toList();
@@ -78,19 +90,23 @@ public class OrderService {
     @Transactional
     public OrderResponse updateOrderItemInOrderBulk(UpdateOrderItemRequestBulk updateOrderItemRequestBulk) {
         OrderEntity orderEntity = getOrderByOrderId(updateOrderItemRequestBulk.orderId());
+        Map<UUID, OrderItemEntity> orderItemEntityMap = orderEntity.getOrderItemEntityList()
+                .stream()
+                .collect(Collectors.toMap(OrderItemEntity::getOrderItemId, o -> o));
         updateOrderItemRequestBulk.items().
                 forEach(updateOrderItemRequest -> {
-                    OrderItemEntity orderItemEntity = orderEntity.getOrderItemMap().get(updateOrderItemRequest.orderItemId());
+                    OrderItemEntity orderItemEntity = orderItemEntityMap.getOrDefault(updateOrderItemRequest.orderItemId(), null);
                     if (orderItemEntity == null)
                         throw new ResourceNotFoundException("orderItem", "Order item not found with Id " + updateOrderItemRequest.orderItemId());
                     orderItemEntity.setOrderedQty(new BigDecimal(updateOrderItemRequest.orderedQty()));
                 });
         orderEntity.reCalcTotals();
-        List<OrderItemResponse> orderItemResponseList = orderEntity.getOrderItemMap().values()
+        List<OrderItemResponse> orderItemResponseList = orderEntity.getOrderItemEntityList()
                 .stream()
                 .map(orderItemMapper::toOrderItemResponse).toList();
         OrderResponse orderResponse = orderMapper.toOrderResponse(orderEntity);
         orderResponse.setOrderItemList(orderItemResponseList);
+        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
         return orderResponse;
     }
 
@@ -112,11 +128,11 @@ public class OrderService {
         orderItemEntity.setOrder(orderEntity);
         orderItemEntity.setOrderedQty(new BigDecimal(orderItemRequest.getOrderedQty()));
         orderItemEntity.setPrice(menuItemVariantResponse.getPrice());
-        orderEntity.getOrderItemMap().put(orderItemEntity.getOrderItemId(), orderItemEntity);
+        orderEntity.getOrderItemEntityList().add(orderItemEntity);
         orderEntity.reCalcTotals();
         orderItemRepository.save(orderItemEntity);
         orderRepository.save(orderEntity);
-        List<OrderItemResponse> orderItemResponseList = orderEntity.getOrderItemMap().values()
+        List<OrderItemResponse> orderItemResponseList = orderEntity.getOrderItemEntityList()
                 .stream()
                 .map(orderItemMapper::toOrderItemResponse)
                 .toList();
@@ -129,70 +145,62 @@ public class OrderService {
         Add item in bulk in order
      */
     public OrderResponse addBulkItemOrderInOrder(BulkOrderItemRequest bulkOrderItemRequest) {
-        List<CompletableFuture<MenuItemVariantResponse>> futuresMenu =
-                bulkOrderItemRequest.items()
-                        .stream()
-                        .map(orderItemRequest -> CompletableFuture
-                                .supplyAsync(() -> bistroFeignClient.getItem(orderItemRequest.getMenuItemId(), orderItemRequest.getVariantId())))
-                        .toList();
+        List<UUID> variantIds = bulkOrderItemRequest.items().stream()
+                .map(OrderItemRequest::getVariantId).toList();
+        MenuItemVariantBulkRequest menuItemVariantBulkRequest = new MenuItemVariantBulkRequest(bulkOrderItemRequest.items().getFirst().getMenuItemId(), variantIds);
+        CompletableFuture<List<MenuItemVariantResponse>> futureMenus = CompletableFuture
+                .supplyAsync(() -> bistroFeignClient.getMenuItems(menuItemVariantBulkRequest.menuItemId(), menuItemVariantBulkRequest));
         OrderEntity orderEntity = getOrderByOrderId(bulkOrderItemRequest.orderId());
-        List<MenuItemVariantResponse> itemVariantResponses = futuresMenu.stream()
-                .map(CompletableFuture::join)
-                .toList();
+        Map<UUID, MenuItemVariantResponse> itemVariantResponses = futureMenus.join().stream().collect(Collectors.toMap(MenuItemVariantResponse::getVariantId, item -> item, (a, b) -> a));
         List<OrderItemEntity> newOrderItem = new ArrayList<>();
         for (int i = 0; i < bulkOrderItemRequest.items().size(); i++) {
             OrderItemRequest orderItemRequest = bulkOrderItemRequest.items().get(i);
-            MenuItemVariantResponse menuItemVariantResponse = itemVariantResponses.get(i);
+            if (!itemVariantResponses.containsKey(orderItemRequest.getVariantId()))
+                throw new ResourceNotFoundException("ItemVariant", "Variant not found with " + orderItemRequest.getVariantId());
+            MenuItemVariantResponse menuItemVariantResponse = itemVariantResponses.get(orderItemRequest.getVariantId());
             OrderItemEntity orderItemEntity = orderItemMapper.toOrderItemEntity(orderItemRequest);
             orderItemEntity.setName(menuItemVariantResponse.getItemName());
             orderItemEntity.setMenuItemId(menuItemVariantResponse.getItemId());
             orderItemEntity.setUnit(menuItemVariantResponse.getUnit());
             orderItemEntity.setTaxRate(menuItemVariantResponse.getTaxRate());
             orderItemEntity.setOrderedQty(BigDecimal.valueOf(orderItemRequest.getOrderedQty()));
-            orderItemEntity.setOrder(orderEntity);
             orderItemEntity.setPrice(menuItemVariantResponse.getPrice());
-            orderEntity.getOrderItemMap().put(UUID.randomUUID(), orderItemEntity);
+            orderItemEntity.setOrder(orderEntity);
             newOrderItem.add(orderItemEntity);
         }
-        orderItemRepository.saveAll(newOrderItem);
+        List<OrderItemEntity> orderItemEntities = orderItemRepository.saveAll(newOrderItem);
+        orderItemEntities.forEach(orderItemEntity -> orderEntity.getOrderItemEntityList().add(orderItemEntity));
         orderEntity.reCalcTotals();
-        orderEntity = orderRepository.save(orderEntity);
-        List<OrderItemResponse> orderItemResponseList = orderEntity.getOrderItemMap().values()
-                .stream()
-                .map(orderItemMapper::toOrderItemResponse)
-                .toList();
+        orderRepository.updateTotals(orderEntity.getOrderId(), orderEntity.getTaxableAmount(), orderEntity.getTaxAmount(), orderEntity.getPayableAmount());
         OrderResponse orderResponse = orderMapper.toOrderResponse(orderEntity);
-        orderResponse.setOrderItemList(orderItemResponseList);
+        orderResponse.setOrderItemList(orderEntity.getOrderItemEntityList().stream().map(orderItemMapper::toOrderItemResponse).toList());
         return orderResponse;
     }
 
     //Remove Item from the given order
-    @Transactional
+    @Transactional()
     public OrderResponse deleteItemFromOrder(UUID orderId, UUID orderItemId) {
         OrderEntity orderEntity = getOrderByOrderId(orderId);
-        if (!orderEntity.getOrderItemMap().containsKey(orderItemId))
-            throw new ResourceNotFoundException("orderItem", "Order Item " + orderItemId + " for Order Id " + orderId + "Not found");
-        orderEntity.getOrderItemMap().remove(orderItemId);
+        orderEntity.getOrderItemEntityList().removeIf((orderItemEntity -> orderItemEntity.getOrderItemId().equals(orderItemId)));
         orderEntity.reCalcTotals();
-        System.out.println(orderEntity.getTaxableAmount());
-        orderRepository.save(orderEntity);
-        OrderEntity order = getOrderByOrderId(orderId);
+        OrderEntity order = orderRepository.save(orderEntity);
+        activeOrderMap.put(orderId,order);
         OrderResponse orderResponse = orderMapper.toOrderResponse(order);
-        orderResponse.setOrderItemList(order.getOrderItemMap().values().stream().map(orderItemMapper::toOrderItemResponse).toList());
+        orderResponse.setOrderItemList(order.getOrderItemEntityList().stream().map(orderItemMapper::toOrderItemResponse).toList());
         return orderResponse;
     }
 
     public OrderEntity getOrderByOrderId(UUID orderId) {
-        return orderRepository.findByOrderId(orderId)
+        if (activeOrderMap.containsKey(orderId)) return activeOrderMap.get(orderId);
+        OrderEntity orderEntity = orderRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "Order not found with Order Id : " + orderId));
+        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
+        return orderEntity;
     }
 
     public List<OrderResponse> getAllOrderOfBistro(UUID branchId) {
         CompletableFuture<List<TableResponse>> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(branchId));
         List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(branchId, OrderStatus.Open);
-//        System.out.println("Size of tables " + listCompletableFuture.join().size());
-        listCompletableFuture.join()
-                .forEach(s -> System.out.println(s.getTableId()));
         Map<UUID, OrderEntity> orderMap = orderEntityList.stream().collect(Collectors.toMap(OrderEntity::getTableId, o -> o));
         return listCompletableFuture.join().stream()
                 .map(tableResponse -> {
@@ -213,8 +221,7 @@ public class OrderService {
                         orderResponse.setTableId(tableResponse.getTableId());
                         orderResponse.setTableNo(tableResponse.getTableNo());
                         orderResponse.setOrderStatus(orderEntity.getOrderStatus());
-                        List<OrderItemResponse> orderItemResponses = orderEntity.getOrderItemMap().values()
-                                .stream()
+                        List<OrderItemResponse> orderItemResponses = orderEntity.getOrderItemEntityList().stream()
                                 .map(orderItemMapper::toOrderItemResponse)
                                 .toList();
                         orderResponse.setOrderItemList(orderItemResponses);

@@ -4,9 +4,11 @@ package com.bistral.app.bistral_order_service.entity;
 import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
 import java.util.*;
+
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -21,6 +23,7 @@ import java.util.*;
                 )
         }
 )
+@BatchSize(size = 50)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class OrderEntity {
     @Id
@@ -46,15 +49,15 @@ public class OrderEntity {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private OrderStatus orderStatus = OrderStatus.Open;
-    @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @MapKey(name = "orderItemId")
-    private Map<UUID, OrderItemEntity> orderItemMap = new HashMap<>();
+    private List<OrderItemEntity> orderItemEntityList = new ArrayList<>();
 
     public void reCalcTotals() {
-        this.taxableAmount = orderItemMap.values().stream()
+        this.taxableAmount = orderItemEntityList.stream()
                 .map(OrderItemEntity::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        this.taxAmount = orderItemMap.values().stream()
+        this.taxAmount = orderItemEntityList.stream()
                 .map(OrderItemEntity::getTaxableAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         this.payableAmount = this.taxableAmount.subtract(this.taxAmount);

@@ -36,7 +36,7 @@ public class OrderItemEntity {
     @Enumerated(EnumType.STRING)
     private ItemUnit unit;
     //order id
-    @ManyToOne()
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.DETACH})
     @JoinColumn(name = "orderId", nullable = false)
     private OrderEntity order;
     @Column(nullable = false)
