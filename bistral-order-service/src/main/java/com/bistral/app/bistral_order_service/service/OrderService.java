@@ -12,7 +12,6 @@ import com.bistral.app.bistral_order_service.repository.OrderItemRepository;
 import com.bistral.app.bistral_order_service.repository.OrderRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.annotations.CurrentTimestamp;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -50,7 +49,7 @@ public class OrderService {
         orderEntity.setPayableAmount(new BigDecimal(0));
         orderEntity.setTaxAmount(new BigDecimal(0));
         orderEntity.setTaxableAmount(new BigDecimal(0));
-        orderEntity.setOrderStatus(OrderStatus.Open);
+        orderEntity.setOrderStatus(OrderStatus.OPEN);
         OrderEntity finalOrderEntity1 = orderEntity;
         CompletableFuture<OrderEntity> orderEntityCompletableFuture = CompletableFuture.supplyAsync(() -> orderRepository.save(finalOrderEntity1));
         BranchResponse branchResponse = branchResponseCompletableFuture.join();
@@ -141,6 +140,7 @@ public class OrderService {
         return orderResponse;
     }
 
+
     /*
         Add item in bulk in order
      */
@@ -173,7 +173,11 @@ public class OrderService {
         orderEntity.reCalcTotals();
         orderRepository.updateTotals(orderEntity.getOrderId(), orderEntity.getTaxableAmount(), orderEntity.getTaxAmount(), orderEntity.getPayableAmount());
         OrderResponse orderResponse = orderMapper.toOrderResponse(orderEntity);
-        orderResponse.setOrderItemList(orderEntity.getOrderItemEntityList().stream().map(orderItemMapper::toOrderItemResponse).toList());
+        orderResponse.setOrderItemList(orderEntity.getOrderItemEntityList().stream().map((oi) -> {
+            OrderItemResponse oir = orderItemMapper.toOrderItemResponse(oi);
+            oir.setAmount(oi.getTaxableAmount());
+            return oir;
+        }).toList());
         return orderResponse;
     }
 
@@ -184,7 +188,7 @@ public class OrderService {
         orderEntity.getOrderItemEntityList().removeIf((orderItemEntity -> orderItemEntity.getOrderItemId().equals(orderItemId)));
         orderEntity.reCalcTotals();
         OrderEntity order = orderRepository.save(orderEntity);
-        activeOrderMap.put(orderId,order);
+        activeOrderMap.put(orderId, order);
         OrderResponse orderResponse = orderMapper.toOrderResponse(order);
         orderResponse.setOrderItemList(order.getOrderItemEntityList().stream().map(orderItemMapper::toOrderItemResponse).toList());
         return orderResponse;
@@ -198,9 +202,16 @@ public class OrderService {
         return orderEntity;
     }
 
+    public OrderEntity saveOrder(OrderEntity order) {
+        OrderEntity orderEntity = orderRepository.save(order);
+        activeOrderMap.put(order.getOrderId(), orderEntity);
+        return orderEntity;
+    }
+
+
     public List<OrderResponse> getAllOrderOfBistro(UUID branchId) {
         CompletableFuture<List<TableResponse>> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(branchId));
-        List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(branchId, OrderStatus.Open);
+        List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(branchId, OrderStatus.OPEN);
         Map<UUID, OrderEntity> orderMap = orderEntityList.stream().collect(Collectors.toMap(OrderEntity::getTableId, o -> o));
         return listCompletableFuture.join().stream()
                 .map(tableResponse -> {
@@ -213,7 +224,7 @@ public class OrderService {
                                 .taxableAmount(new BigDecimal(0))
                                 .branchId(branchId)
                                 .discount(BigDecimal.ZERO)
-                                .orderStatus(OrderStatus.Vacant)
+                                .orderStatus(OrderStatus.VACANT)
                                 .orderItemList(new ArrayList<>())
                                 .build();
                     } else {

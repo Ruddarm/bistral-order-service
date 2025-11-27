@@ -42,6 +42,8 @@ public class OrderItemEntity {
     @Column(nullable = false)
     private UUID menuItemId;
 
+
+
     public BigDecimal getTaxableAmount() {
         return BigDecimal.ZERO;
     }

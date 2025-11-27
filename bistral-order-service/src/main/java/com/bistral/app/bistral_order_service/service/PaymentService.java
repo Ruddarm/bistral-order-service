@@ -28,9 +28,11 @@ public class PaymentService {
                 .builder()
                 .order(orderEntity)
                 .paymentMode(paymentMode)
-                .paymentStatus(PaymentStatus.Success)
+                .paymentStatus(PaymentStatus.PAID)
                 .build();
-        orderEntity.setOrderStatus(OrderStatus.Payment_completed);
+        orderEntity.setOrderStatus(OrderStatus.CLOSED);
+        orderEntity.setPaymentStatus(PaymentStatus.PAID);
+        orderService.saveOrder(orderEntity);
         return  paymentRepository.save(paymentEntity);
     }
 

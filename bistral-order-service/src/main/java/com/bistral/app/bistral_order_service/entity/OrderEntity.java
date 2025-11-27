@@ -1,14 +1,11 @@
 package com.bistral.app.bistral_order_service.entity;
-
-
 import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
+import com.bistral.app.bistral_order_service.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
-
 import java.math.BigDecimal;
 import java.util.*;
-
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -32,7 +29,7 @@ public class OrderEntity {
     private UUID orderId;
     @Column(nullable = false)
     private UUID bistroId;
-    @Column(nullable = false)
+    @Column()
     private UUID tableId;
     @Column(nullable = false)
     private UUID branchId;
@@ -48,7 +45,9 @@ public class OrderEntity {
     private String orderType;
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private OrderStatus orderStatus = OrderStatus.Open;
+    private OrderStatus orderStatus = OrderStatus.OPEN;
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus = PaymentStatus.PENDING;
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @MapKey(name = "orderItemId")
     private List<OrderItemEntity> orderItemEntityList = new ArrayList<>();
@@ -62,6 +61,4 @@ public class OrderEntity {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         this.payableAmount = this.taxableAmount.subtract(this.taxAmount);
     }
-
-
 }

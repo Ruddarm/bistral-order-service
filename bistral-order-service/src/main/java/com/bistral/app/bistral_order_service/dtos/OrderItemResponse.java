@@ -20,5 +20,7 @@ public class OrderItemResponse {
     private BigDecimal price;
     private BigDecimal taxRate;
     private BigDecimal orderedQty;
+    private BigDecimal amount;
+
 
 }
