@@ -63,7 +63,6 @@ public class OrderService {
         return orderMapper.toOrderResponse(orderEntity);
     }
 
-    @Transactional
     public OrderResponse updateOrderItemInOrder(OrderItemRequest orderItemRequest) {
         OrderEntity orderEntity = getOrderByOrderId(orderItemRequest.getOrderId());
         OrderItemEntity orderItemEntity = orderEntity
@@ -77,6 +76,7 @@ public class OrderService {
         orderItemEntity.setOrderedQty(new BigDecimal(orderItemRequest.getOrderedQty()));
         orderItemEntity.setPrice(orderItemEntity.getPrice());
         orderEntity.reCalcTotals();
+        orderEntity = orderRepository.save(orderEntity);
         List<OrderItemResponse> orderItemResponseList = orderEntity.getOrderItemEntityList()
                 .stream()
                 .map(orderItemMapper::toOrderItemResponse)

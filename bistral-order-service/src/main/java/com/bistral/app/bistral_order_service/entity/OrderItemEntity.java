@@ -26,7 +26,7 @@ public class OrderItemEntity {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
     // item tax rate
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = true, precision = 10, scale = 2)
     private BigDecimal taxRate;
     // item ordered qty
     @Column(nullable = false)
