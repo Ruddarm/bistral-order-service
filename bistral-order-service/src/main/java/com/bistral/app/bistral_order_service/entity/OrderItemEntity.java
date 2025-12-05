@@ -21,7 +21,10 @@ public class OrderItemEntity {
     @EqualsAndHashCode.Include
     private UUID orderItemId;
     //store items name
-    private String name;
+    @Column(nullable = false)
+    private String itemName;
+
+    private  String variantName;
     //item price
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
@@ -42,7 +45,8 @@ public class OrderItemEntity {
     @Column(nullable = false)
     private UUID menuItemId;
 
-
+    @Column(nullable = false)
+    private  UUID variantId;
 
     public BigDecimal getTaxableAmount() {
         return BigDecimal.ZERO;

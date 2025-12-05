@@ -119,7 +119,8 @@ public class OrderService {
         OrderEntity orderEntity = getOrderByOrderId(orderItemRequest.getOrderId());
         MenuItemVariantResponse menuItemVariantResponse = menuItemVariantResponseCompletableFuture.join();
         OrderItemEntity orderItemEntity = orderItemMapper.toOrderItemEntity(orderItemRequest);
-        orderItemEntity.setName(menuItemVariantResponse.getItemName());
+        orderItemEntity.setItemName(menuItemVariantResponse.getItemName());
+        orderItemEntity.setVariantName(menuItemVariantResponse.getVariantName());
         orderItemEntity.setMenuItemId(orderItemRequest.getMenuItemId());
         orderItemEntity.setUnit(menuItemVariantResponse.getUnit());
         orderItemEntity.setTaxRate(menuItemVariantResponse.getTaxRate());
@@ -159,7 +160,8 @@ public class OrderService {
                 throw new ResourceNotFoundException("ItemVariant", "Variant not found with " + orderItemRequest.getVariantId());
             MenuItemVariantResponse menuItemVariantResponse = itemVariantResponses.get(orderItemRequest.getVariantId());
             OrderItemEntity orderItemEntity = orderItemMapper.toOrderItemEntity(orderItemRequest);
-            orderItemEntity.setName(menuItemVariantResponse.getItemName());
+            orderItemEntity.setItemName(menuItemVariantResponse.getItemName());
+            orderItemEntity.setVariantName(menuItemVariantResponse.getVariantName());
             orderItemEntity.setMenuItemId(menuItemVariantResponse.getItemId());
             orderItemEntity.setUnit(menuItemVariantResponse.getUnit());
             orderItemEntity.setTaxRate(menuItemVariantResponse.getTaxRate());

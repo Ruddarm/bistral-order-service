@@ -4,7 +4,7 @@ package com.bistral.app.bistral_order_service.entity;
 import jakarta.persistence.*;
 
 import java.util.UUID;
-@Entity
+@Entity(name = "order_number")
 public class OrderNumber {
 
     @Id
@@ -12,5 +12,5 @@ public class OrderNumber {
     public  UUID orderNumberId;
     public  UUID bistroId;
     public  UUID branchId;
-    public int orderNumber;
+    public  int orderNumber;
 }
