@@ -3,6 +3,7 @@ package com.bistral.app.bistral_order_service.controllers;
 
 import com.bistral.app.bistral_order_service.dtos.*;
 import com.bistral.app.bistral_order_service.entity.OrderEntity;
+import com.bistral.app.bistral_order_service.exceptions.CloseOrderException;
 import com.bistral.app.bistral_order_service.mapperInterface.OrderItemMapper;
 import com.bistral.app.bistral_order_service.mapperInterface.OrderMapper;
 import com.bistral.app.bistral_order_service.service.OrderService;
@@ -32,22 +33,22 @@ public class OrderController {
     }
 
     @PostMapping("/add/item")
-    public ResponseEntity<OrderResponse> addItem(@Valid @RequestBody OrderItemRequest orderItemRequest) {
+    public ResponseEntity<OrderResponse> addItem(@Valid @RequestBody OrderItemRequest orderItemRequest) throws CloseOrderException {
         return ResponseEntity.ok(orderService.addItemOrderInOrder(orderItemRequest));
     }
 
     @PostMapping("/add/item/bulk")
-    public ResponseEntity<OrderResponse> addItems(@Valid @RequestBody BulkOrderItemRequest bulkOrderItemRequest) {
+    public ResponseEntity<OrderResponse> addItems(@Valid @RequestBody BulkOrderItemRequest bulkOrderItemRequest) throws CloseOrderException {
         return ResponseEntity.ok(orderService.addBulkItemOrderInOrder(bulkOrderItemRequest));
     }
 
     @PatchMapping("/update/item")
-    public ResponseEntity<OrderResponse> updateItem(@Valid @RequestBody OrderItemRequest orderItemRequest) {
+    public ResponseEntity<OrderResponse> updateItem(@Valid @RequestBody OrderItemRequest orderItemRequest) throws CloseOrderException {
         return ResponseEntity.ok(orderService.updateOrderItemInOrder(orderItemRequest));
     }
 
     @PatchMapping("/update/item/bulk")
-    public ResponseEntity<OrderResponse> updateItemInBulk(@Valid @RequestBody UpdateOrderItemRequestBulk updateOrderItemRequestBulk) {
+    public ResponseEntity<OrderResponse> updateItemInBulk(@Valid @RequestBody UpdateOrderItemRequestBulk updateOrderItemRequestBulk) throws CloseOrderException {
         return ResponseEntity.ok(orderService.updateOrderItemInOrderBulk(updateOrderItemRequestBulk));
     }
 
@@ -61,14 +62,24 @@ public class OrderController {
         OrderEntity orderEntity = orderService.getOrderByOrderId(orderId);
         List<OrderItemResponse> itemResponseList = new ArrayList<>();
         orderEntity.getOrderItemEntityList().forEach((orderItemEntity) -> {
-            System.out.println(orderItemEntity);
+//            System.out.println(orderItemEntity);
             itemResponseList.add(orderItemMapper.toOrderItemResponse(orderItemEntity));
         });
+        List<PaymentResponse> paymentResponseList =
+                orderEntity.getPaymentEntities()
+                        .stream()
+                        .map(paymentEntity -> PaymentResponse.builder().paymentId(paymentEntity.getPaymentId())
+                                .amount(paymentEntity.getAmount())
+                                .status(paymentEntity.getPaymentStatus())
+                                .paymentMode(paymentEntity.getPaymentMode())
+                                .build()).toList();
         OrderResponse orderResponse = orderMapper.toOrderResponse(orderEntity);
         orderResponse.setTableId(orderEntity.getTableId());
         orderResponse.setTableNo(orderEntity.getTableNo());
+        orderResponse.setPaymentStatus(orderEntity.getPaymentStatus());
         orderResponse.setOrderStatus(orderEntity.getOrderStatus());
         orderResponse.setOrderItemList(itemResponseList);
+        orderResponse.setPaymentResponseList(paymentResponseList);
         return ResponseEntity.ok(orderResponse);
     }
 
@@ -76,7 +87,6 @@ public class OrderController {
     public List<OrderResponse> getActiveOrders(@PathVariable UUID branchId) {
         return orderService.getAllOrderOfBistro(branchId);
     }
-
 
 
 }

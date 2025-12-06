@@ -3,7 +3,6 @@ package com.bistral.app.bistral_order_service.repository;
 import com.bistral.app.bistral_order_service.entity.OrderEntity;
 import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
 import jakarta.transaction.Transactional;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -13,13 +12,12 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 @Repository
-public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
+public interface OrderEntityRepository extends JpaRepository<OrderEntity, UUID> {
 
-    @Query("select o from OrderEntity o left join fetch o.orderItemEntityList where o.orderId = :orderId")
+    @Query("select distinct  o from OrderEntity o left join fetch o.orderItemEntityList left join fetch  o.paymentEntities where o.orderId = :orderId")
     Optional<OrderEntity> findByOrderId(@Param("orderId") UUID orderId);
 
     @Transactional

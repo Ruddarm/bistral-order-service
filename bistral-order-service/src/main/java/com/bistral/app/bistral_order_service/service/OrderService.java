@@ -1,5 +1,6 @@
 package com.bistral.app.bistral_order_service.service;
 
+import com.bistral.app.bistral_order_service.exceptions.CloseOrderException;
 import com.bistral.app.bistral_order_service.mapperInterface.OrderItemMapper;
 import com.bistral.app.bistral_order_service.dtos.*;
 import com.bistral.app.bistral_order_service.entity.OrderEntity;
@@ -9,16 +10,14 @@ import com.bistral.app.bistral_order_service.exceptions.ResourceNotFoundExceptio
 import com.bistral.app.bistral_order_service.mapperInterface.OrderMapper;
 import com.bistral.app.bistral_order_service.openfeignclients.BistroFeignClient;
 import com.bistral.app.bistral_order_service.repository.OrderItemRepository;
-import com.bistral.app.bistral_order_service.repository.OrderRepository;
+import com.bistral.app.bistral_order_service.repository.OrderEntityRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.sql.Time;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -28,11 +27,9 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final BistroFeignClient bistroFeignClient;
-    private final OrderRepository orderRepository;
+    private final OrderEntityRepository orderRepository;
 
     private final OrderItemRepository orderItemRepository;
-
-    private final ConcurrentHashMap<UUID, OrderEntity> activeOrderMap = new ConcurrentHashMap<>();
 
     /*
         create a new order for given bistro with branch
@@ -55,7 +52,7 @@ public class OrderService {
         BranchResponse branchResponse = branchResponseCompletableFuture.join();
         orderEntity = orderEntityCompletableFuture.join();
         orderEntity.setOrderItemEntityList(new ArrayList<>());
-        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
+//        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
         if (!orderEntity.getBranchId().equals(branchResponse.getBranchId())) {
             orderRepository.delete(orderEntity);
             throw new ResourceNotFoundException("Bistro Branch", "Invalid Bistro / Branch id");
@@ -63,8 +60,10 @@ public class OrderService {
         return orderMapper.toOrderResponse(orderEntity);
     }
 
-    public OrderResponse updateOrderItemInOrder(OrderItemRequest orderItemRequest) {
+    public OrderResponse updateOrderItemInOrder(OrderItemRequest orderItemRequest) throws CloseOrderException {
         OrderEntity orderEntity = getOrderByOrderId(orderItemRequest.getOrderId());
+        if (orderEntity.getOrderStatus() == OrderStatus.CLOSED)
+            throw new CloseOrderException("Can not Add or Modify Closed Orders", 101);
         OrderItemEntity orderItemEntity = orderEntity
                 .getOrderItemEntityList()
                 .stream()
@@ -87,8 +86,10 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse updateOrderItemInOrderBulk(UpdateOrderItemRequestBulk updateOrderItemRequestBulk) {
+    public OrderResponse updateOrderItemInOrderBulk(UpdateOrderItemRequestBulk updateOrderItemRequestBulk) throws CloseOrderException {
         OrderEntity orderEntity = getOrderByOrderId(updateOrderItemRequestBulk.orderId());
+        if (orderEntity.getOrderStatus() == OrderStatus.CLOSED)
+            throw new CloseOrderException("Can not Add or Modify Closed Orders", 101);
         Map<UUID, OrderItemEntity> orderItemEntityMap = orderEntity.getOrderItemEntityList()
                 .stream()
                 .collect(Collectors.toMap(OrderItemEntity::getOrderItemId, o -> o));
@@ -105,18 +106,20 @@ public class OrderService {
                 .map(orderItemMapper::toOrderItemResponse).toList();
         OrderResponse orderResponse = orderMapper.toOrderResponse(orderEntity);
         orderResponse.setOrderItemList(orderItemResponseList);
-        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
+//        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
         return orderResponse;
     }
 
     /*
         Add single item in order
      */
-    public OrderResponse addItemOrderInOrder(OrderItemRequest orderItemRequest) {
+    public OrderResponse addItemOrderInOrder(OrderItemRequest orderItemRequest) throws CloseOrderException {
         CompletableFuture<MenuItemVariantResponse> menuItemVariantResponseCompletableFuture = CompletableFuture.supplyAsync(()
                 -> bistroFeignClient.getItem(orderItemRequest.getMenuItemId(), orderItemRequest.getVariantId())
         );
         OrderEntity orderEntity = getOrderByOrderId(orderItemRequest.getOrderId());
+        if (orderEntity.getOrderStatus() == OrderStatus.CLOSED)
+            throw new CloseOrderException("Can not Add or Modify Closed Orders", 101);
         MenuItemVariantResponse menuItemVariantResponse = menuItemVariantResponseCompletableFuture.join();
         OrderItemEntity orderItemEntity = orderItemMapper.toOrderItemEntity(orderItemRequest);
         orderItemEntity.setItemName(menuItemVariantResponse.getItemName());
@@ -145,13 +148,15 @@ public class OrderService {
     /*
         Add item in bulk in order
      */
-    public OrderResponse addBulkItemOrderInOrder(BulkOrderItemRequest bulkOrderItemRequest) {
+    public OrderResponse addBulkItemOrderInOrder(BulkOrderItemRequest bulkOrderItemRequest) throws CloseOrderException {
         List<UUID> variantIds = bulkOrderItemRequest.items().stream()
                 .map(OrderItemRequest::getVariantId).toList();
         MenuItemVariantBulkRequest menuItemVariantBulkRequest = new MenuItemVariantBulkRequest(bulkOrderItemRequest.items().getFirst().getMenuItemId(), variantIds);
         CompletableFuture<List<MenuItemVariantResponse>> futureMenus = CompletableFuture
                 .supplyAsync(() -> bistroFeignClient.getMenuItems(menuItemVariantBulkRequest.menuItemId(), menuItemVariantBulkRequest));
         OrderEntity orderEntity = getOrderByOrderId(bulkOrderItemRequest.orderId());
+        if (orderEntity.getOrderStatus() == OrderStatus.CLOSED)
+            throw new CloseOrderException("Can not Add or Modify Closed Orders", 101);
         Map<UUID, MenuItemVariantResponse> itemVariantResponses = futureMenus.join().stream().collect(Collectors.toMap(MenuItemVariantResponse::getVariantId, item -> item, (a, b) -> a));
         List<OrderItemEntity> newOrderItem = new ArrayList<>();
         for (int i = 0; i < bulkOrderItemRequest.items().size(); i++) {
@@ -190,23 +195,23 @@ public class OrderService {
         orderEntity.getOrderItemEntityList().removeIf((orderItemEntity -> orderItemEntity.getOrderItemId().equals(orderItemId)));
         orderEntity.reCalcTotals();
         OrderEntity order = orderRepository.save(orderEntity);
-        activeOrderMap.put(orderId, order);
+//        activeOrderMap.put(orderId, order);
         OrderResponse orderResponse = orderMapper.toOrderResponse(order);
         orderResponse.setOrderItemList(order.getOrderItemEntityList().stream().map(orderItemMapper::toOrderItemResponse).toList());
         return orderResponse;
     }
 
     public OrderEntity getOrderByOrderId(UUID orderId) {
-        if (activeOrderMap.containsKey(orderId)) return activeOrderMap.get(orderId);
+//        if (activeOrderMap.containsKey(orderId)) return activeOrderMap.get(orderId);
         OrderEntity orderEntity = orderRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "Order not found with Order Id : " + orderId));
-        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
+//        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
         return orderEntity;
     }
 
     public OrderEntity saveOrder(OrderEntity order) {
         OrderEntity orderEntity = orderRepository.save(order);
-        activeOrderMap.put(order.getOrderId(), orderEntity);
+//        activeOrderMap.put(order.getOrderId(), orderEntity);
         return orderEntity;
     }
 

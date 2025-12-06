@@ -1,9 +1,11 @@
 package com.bistral.app.bistral_order_service.entity;
+
 import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
 import com.bistral.app.bistral_order_service.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
+
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -48,8 +50,9 @@ public class OrderEntity {
     private OrderStatus orderStatus = OrderStatus.OPEN;
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    @MapKey(name = "orderItemId")
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, orphanRemoval = true, cascade = {CascadeType.ALL})
+    private Set<PaymentEntity> paymentEntities = new HashSet<>();
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemEntity> orderItemEntityList = new ArrayList<>();
 
     public void reCalcTotals() {

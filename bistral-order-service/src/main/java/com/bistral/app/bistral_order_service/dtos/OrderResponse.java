@@ -1,11 +1,14 @@
 package com.bistral.app.bistral_order_service.dtos;
 
 
+import com.bistral.app.bistral_order_service.entity.PaymentEntity;
 import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
+import com.bistral.app.bistral_order_service.entity.enums.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,4 +31,6 @@ public class OrderResponse {
     private BigDecimal payableAmount;
     private String orderType;
     private List<OrderItemResponse> orderItemList = new ArrayList<>();
+    private List<PaymentResponse> paymentResponseList = new ArrayList<>();
+    private PaymentStatus paymentStatus;
 }
