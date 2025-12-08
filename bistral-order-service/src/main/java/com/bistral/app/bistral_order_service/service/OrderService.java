@@ -1,5 +1,6 @@
 package com.bistral.app.bistral_order_service.service;
 
+import com.bistral.app.bistral_order_service.entity.enums.OrderType;
 import com.bistral.app.bistral_order_service.exceptions.CloseOrderException;
 import com.bistral.app.bistral_order_service.mapperInterface.OrderItemMapper;
 import com.bistral.app.bistral_order_service.dtos.*;
@@ -44,6 +45,7 @@ public class OrderService {
         orderEntity.setTableId(orderRequest.getTableId());
         orderEntity.setDiscount(new BigDecimal(0));
         orderEntity.setPayableAmount(new BigDecimal(0));
+        orderEntity.setOrderType(OrderType.DINE_IN);
         orderEntity.setTaxAmount(new BigDecimal(0));
         orderEntity.setTaxableAmount(new BigDecimal(0));
         orderEntity.setOrderStatus(OrderStatus.OPEN);

@@ -1,12 +1,15 @@
 package com.bistral.app.bistral_order_service.entity;
 
 import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
+import com.bistral.app.bistral_order_service.entity.enums.OrderType;
 import com.bistral.app.bistral_order_service.entity.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @AllArgsConstructor
@@ -44,7 +47,7 @@ public class OrderEntity {
     private BigDecimal taxableAmount;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal payableAmount;
-    private String orderType;
+    private OrderType orderType;
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private OrderStatus orderStatus = OrderStatus.OPEN;
@@ -55,6 +58,8 @@ public class OrderEntity {
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemEntity> orderItemEntityList = new ArrayList<>();
 
+    @CreationTimestamp
+    private LocalDateTime createdAt;
     public void reCalcTotals() {
         this.taxableAmount = orderItemEntityList.stream()
                 .map(OrderItemEntity::getTotalPrice)
