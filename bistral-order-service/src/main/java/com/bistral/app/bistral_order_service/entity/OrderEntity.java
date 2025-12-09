@@ -39,6 +39,7 @@ public class OrderEntity {
     @Column(nullable = false)
     private UUID branchId;
     private int tableNo;
+    private long orderNumber;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal taxAmount;
     @Column(nullable = false, precision = 10, scale = 2)

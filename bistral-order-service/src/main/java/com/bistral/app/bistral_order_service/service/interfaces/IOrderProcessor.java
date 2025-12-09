@@ -1,4 +1,4 @@
-package com.bistral.app.bistral_order_service.service.Interfaces;
+package com.bistral.app.bistral_order_service.service.interfaces;
 
 import com.bistral.app.bistral_order_service.dtos.BulkOrderItemRequest;
 import com.bistral.app.bistral_order_service.dtos.OrderItemRequest;
