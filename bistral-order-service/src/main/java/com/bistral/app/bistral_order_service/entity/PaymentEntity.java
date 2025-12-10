@@ -8,6 +8,7 @@ import lombok.*;
 import org.hibernate.annotations.CurrentTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -31,7 +32,7 @@ public class PaymentEntity {
     @Enumerated(EnumType.STRING)
     PaymentMode paymentMode;
     @CurrentTimestamp
-    Date paidAt;
+    LocalDateTime paidAt;
     BigDecimal amount=BigDecimal.ZERO;
 
 }

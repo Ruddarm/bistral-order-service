@@ -25,6 +25,7 @@ public class AnalyticsController {
 
     private final OrderAnalysisService orderAnalysisService;
 
+    //    private  final OrderAnalysisService
     private final TrendService trendService;
 
     @GetMapping("/kpi")
@@ -49,6 +50,26 @@ public class AnalyticsController {
             @RequestParam(required = false) List<UUID> branchIds,
             Range range
     ) {
-        return ResponseEntity.ok(trendService.getTrend(range, bistroIds, branchIds));
+        return ResponseEntity.ok(trendService.getOrderTrend(range, bistroIds, branchIds));
     }
+
+    @GetMapping("/trend/revenue")
+    public ResponseEntity<List<TrendPointDto>> getRevenueTrend(
+            @RequestParam List<UUID> bistroIds,
+            @RequestParam(required = false) List<UUID> branchIds,
+            Range range
+    ) {
+        return ResponseEntity.ok(trendService.getRevenueTrend(range, bistroIds, branchIds));
+    }
+
+    @GetMapping("/trend/payment-mode")
+    public ResponseEntity<List<TrendPointDto>> getPaymentMode(
+            @RequestParam List<UUID> bistroIds,
+            @RequestParam(required = false) List<UUID> branchId,
+            Range range
+    ) {
+        return  ResponseEntity.ok(trendService.getPaymentModeDistrubtion(bistroIds,branchId,range));
+    }
+
+
 }

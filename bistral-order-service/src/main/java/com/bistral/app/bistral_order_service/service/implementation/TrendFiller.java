@@ -3,7 +3,7 @@ package com.bistral.app.bistral_order_service.service.implementation;
 
 import com.bistral.app.bistral_order_service.dtos.TrendPointDto;
 import com.bistral.app.bistral_order_service.dtos.TrendPointDtoImpl;
-import com.bistral.app.bistral_order_service.service.interfaces.ITrendGrouping;
+import com.bistral.app.bistral_order_service.service.interfaces.ITrendAnalysis;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -20,7 +20,7 @@ public class TrendFiller {
     // Convert raw DB projection list -> map<label, value>
     public List<TrendPointDto> fillAndFormat(LocalDateTime start,
                                              LocalDateTime end,
-                                             ITrendGrouping grouping,
+                                             ITrendAnalysis grouping,
                                              List<TrendPointDtoImpl> raw) {
 
         Map<String, Double> rawMap = raw.stream()
@@ -29,14 +29,9 @@ public class TrendFiller {
         List<TrendPointDto> out = new ArrayList<>();
         List<String> expectedRaw = grouping.expectedRawLabels(start, end);
 
-        // iterate pointers aligned with expectedRaw to produce pretty labels
-        // we need pointer values; but grouping.expectedRawLabels builds raw keys in same order
-        // We'll reconstruct pointer progression to produce pretty labels consistently.
         LocalDateTime pointer = start;
         for (String rawKey : expectedRaw) {
             double value = rawMap.getOrDefault(rawKey, 0.0);
-
-            // produce pretty label based on bucket:
             String pretty;
             switch (grouping.getGroupBy()) {
                 case "hour":
@@ -59,7 +54,6 @@ public class TrendFiller {
                     pointer = pointer.plusMonths(1);
                     break;
             }
-
             out.add(new TrendPointDtoImpl(pretty, value));
         }
 
