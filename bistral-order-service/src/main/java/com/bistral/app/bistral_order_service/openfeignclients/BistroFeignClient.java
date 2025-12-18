@@ -29,7 +29,7 @@ public interface BistroFeignClient {
     @PostMapping("/menus/menu-items/{itemId}/variants/bulk")
     List<MenuItemVariantResponse> getMenuItems(@PathVariable UUID itemId, @RequestBody MenuItemVariantBulkRequest menuItemVariantBulkRequest);
 
-    @GetMapping("/branch/{branchId}/table")
-    List<TableResponse> getTables(@PathVariable UUID branchId);
+    @GetMapping("/branch/{branchId}/table/{zoneId}")
+    List<TableResponse> getTables(@PathVariable UUID branchId,@PathVariable UUID zoneId);
 
 }

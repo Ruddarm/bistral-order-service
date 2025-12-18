@@ -218,8 +218,8 @@ public class OrderService {
     }
 
 
-    public List<OrderResponse> getAllOrderOfBistro(UUID branchId) {
-        CompletableFuture<List<TableResponse>> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(branchId));
+    public List<OrderResponse> getAllOrderOfBistro(UUID branchId,UUID zoneId) {
+        CompletableFuture<List<TableResponse>> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(branchId,zoneId));
         List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(branchId, OrderStatus.OPEN);
         Map<UUID, OrderEntity> orderMap = orderEntityList.stream().collect(Collectors.toMap(OrderEntity::getTableId, o -> o));
         return listCompletableFuture.join().stream()
