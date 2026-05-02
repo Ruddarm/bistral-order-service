@@ -1,14 +1,13 @@
 package com.bistral.app.bistral_order_service.repository;
 
 import com.bistral.app.bistral_order_service.entity.OrderEntity;
-import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
+import com.bistral.app.bistral_order_service.enums.OrderStatus;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -33,4 +32,8 @@ public interface OrderEntityRepository extends JpaRepository<OrderEntity, UUID> 
                   and o.orderStatus = :status
             """)
     List<OrderEntity> findByBranchIdAndOrderStatus(UUID branchId, OrderStatus status);
+
+
+
+
 }

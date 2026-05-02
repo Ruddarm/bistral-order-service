@@ -1,6 +1,6 @@
 package com.bistral.app.bistral_order_service.entity;
 
-import com.bistral.app.bistral_order_service.entity.enums.ItemUnit;
+import com.bistral.app.bistral_order_service.enums.ItemUnit;
 import jakarta.persistence.*;
 import lombok.*;
 

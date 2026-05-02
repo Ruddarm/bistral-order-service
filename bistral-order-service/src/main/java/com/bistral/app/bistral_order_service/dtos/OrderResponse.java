@@ -1,9 +1,8 @@
 package com.bistral.app.bistral_order_service.dtos;
 
 
-import com.bistral.app.bistral_order_service.entity.PaymentEntity;
-import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
-import com.bistral.app.bistral_order_service.entity.enums.PaymentStatus;
+import com.bistral.app.bistral_order_service.enums.OrderStatus;
+import com.bistral.app.bistral_order_service.enums.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

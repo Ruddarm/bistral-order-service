@@ -16,7 +16,7 @@ public class OrderRequest {
     private UUID bistroId;
     @NotNull
     private UUID branchId;
-    @NotNull
+    @NotNull(message = "table Id can't be null ")
     private  UUID tableId;
     @NotNull
     @Min(0)

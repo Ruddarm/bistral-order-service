@@ -1,8 +1,8 @@
 package com.bistral.app.bistral_order_service.entity;
 
-import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
-import com.bistral.app.bistral_order_service.entity.enums.OrderType;
-import com.bistral.app.bistral_order_service.entity.enums.PaymentStatus;
+import com.bistral.app.bistral_order_service.enums.OrderStatus;
+import com.bistral.app.bistral_order_service.enums.OrderType;
+import com.bistral.app.bistral_order_service.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;

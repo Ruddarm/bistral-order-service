@@ -62,7 +62,6 @@ public class OrderController {
         OrderEntity orderEntity = orderService.getOrderByOrderId(orderId);
         List<OrderItemResponse> itemResponseList = new ArrayList<>();
         orderEntity.getOrderItemEntityList().forEach((orderItemEntity) -> {
-//            System.out.println(orderItemEntity);
             itemResponseList.add(orderItemMapper.toOrderItemResponse(orderItemEntity));
         });
         List<PaymentResponse> paymentResponseList =
@@ -85,8 +84,11 @@ public class OrderController {
 
     @GetMapping("/branch/{branchId}/zone/{zoneId}/order/all")
     public List<OrderResponse> getActiveOrders(@PathVariable UUID branchId, @PathVariable UUID zoneId) {
-        return orderService.getAllOrderOfBistro(branchId,zoneId);
+        return orderService.getAllOrderOfBistro(branchId, zoneId);
     }
+
+
+
 
 
 }

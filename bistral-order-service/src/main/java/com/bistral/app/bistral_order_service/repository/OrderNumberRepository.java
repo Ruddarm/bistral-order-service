@@ -10,5 +10,4 @@ import java.util.UUID;
 @Repository
 public interface OrderNumberRepository extends JpaRepository<OrderNumberEntity, UUID> {
 
-
 }

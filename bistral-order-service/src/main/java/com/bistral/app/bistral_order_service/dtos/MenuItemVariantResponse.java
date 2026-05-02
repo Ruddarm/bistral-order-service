@@ -1,6 +1,6 @@
 package com.bistral.app.bistral_order_service.dtos;
 
-import com.bistral.app.bistral_order_service.entity.enums.ItemUnit;
+import com.bistral.app.bistral_order_service.enums.ItemUnit;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

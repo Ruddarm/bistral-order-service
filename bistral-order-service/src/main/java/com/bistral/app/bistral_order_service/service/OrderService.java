@@ -1,12 +1,12 @@
 package com.bistral.app.bistral_order_service.service;
 
-import com.bistral.app.bistral_order_service.entity.enums.OrderType;
+import com.bistral.app.bistral_order_service.enums.OrderType;
 import com.bistral.app.bistral_order_service.exceptions.CloseOrderException;
 import com.bistral.app.bistral_order_service.mapperInterface.OrderItemMapper;
 import com.bistral.app.bistral_order_service.dtos.*;
 import com.bistral.app.bistral_order_service.entity.OrderEntity;
 import com.bistral.app.bistral_order_service.entity.OrderItemEntity;
-import com.bistral.app.bistral_order_service.entity.enums.OrderStatus;
+import com.bistral.app.bistral_order_service.enums.OrderStatus;
 import com.bistral.app.bistral_order_service.exceptions.ResourceNotFoundException;
 import com.bistral.app.bistral_order_service.mapperInterface.OrderMapper;
 import com.bistral.app.bistral_order_service.openfeignclients.BistroFeignClient;
@@ -217,9 +217,8 @@ public class OrderService {
         return orderEntity;
     }
 
-
-    public List<OrderResponse> getAllOrderOfBistro(UUID branchId,UUID zoneId) {
-        CompletableFuture<List<TableResponse>> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(branchId,zoneId));
+    public List<OrderResponse> getAllOrderOfBistro(UUID branchId, UUID zoneId) {
+        CompletableFuture<List<TableResponse>> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(branchId, zoneId));
         List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(branchId, OrderStatus.OPEN);
         Map<UUID, OrderEntity> orderMap = orderEntityList.stream().collect(Collectors.toMap(OrderEntity::getTableId, o -> o));
         return listCompletableFuture.join().stream()
@@ -250,5 +249,17 @@ public class OrderService {
                 })
                 .toList();
     }
+
+//    public List<OrderResponse> getOrderWithFilter(List<UUID> bistroId, List<UUID> branchId,
+//                                                  BigDecimal minPayableAmount,
+//                                                  BigDecimal maxPayableAmount,
+//                                                  LocalDate from,
+//                                                  LocalDate to,
+//                                                  int Page,
+//                                                  int size
+//    ) {
+//        List<OrderEntity> order = orderRepository.
+//
+//    }
 
 }

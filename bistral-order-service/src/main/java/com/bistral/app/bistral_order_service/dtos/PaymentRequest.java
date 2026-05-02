@@ -1,6 +1,6 @@
 package com.bistral.app.bistral_order_service.dtos;
 
-import com.bistral.app.bistral_order_service.entity.enums.PaymentMode;
+import com.bistral.app.bistral_order_service.enums.PaymentMode;
 import lombok.*;
 
 import java.math.BigDecimal;

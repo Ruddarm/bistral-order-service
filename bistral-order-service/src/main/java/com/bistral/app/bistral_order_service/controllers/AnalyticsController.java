@@ -1,20 +1,19 @@
 package com.bistral.app.bistral_order_service.controllers;
 
 
-import com.bistral.app.bistral_order_service.dtos.KpiDTO;
-import com.bistral.app.bistral_order_service.dtos.RecentOrderDto;
-import com.bistral.app.bistral_order_service.dtos.TrendPointDto;
-import com.bistral.app.bistral_order_service.dtos.TrendPointDtoImpl;
+import com.bistral.app.bistral_order_service.dtos.*;
 import com.bistral.app.bistral_order_service.service.OrderAnalysisService;
 import com.bistral.app.bistral_order_service.service.implementation.TrendService;
 import com.bistral.app.bistral_order_service.utils.Range;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -68,8 +67,38 @@ public class AnalyticsController {
             @RequestParam(required = false) List<UUID> branchId,
             Range range
     ) {
-        return  ResponseEntity.ok(trendService.getPaymentModeDistrubtion(bistroIds,branchId,range));
+        return ResponseEntity.ok(trendService.getPaymentModeDistrubtion(bistroIds, branchId, range));
     }
 
+    @GetMapping("/filter")
+    public PageResponse<List<OrderResponse>> getFilterdOrder(
+            @RequestParam(required = false) List<UUID> bistroIds,
+            @RequestParam(required = false) List<UUID> branchIds,
+            @RequestParam(required = false) BigDecimal minPayableAmount,
+            @RequestParam(required = false) BigDecimal maxPayableAmount,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        page  = Math.max(page-1,0);
+        return trendService.filterdOrder(bistroIds,
+                branchIds,
+                minPayableAmount,
+                maxPayableAmount,
+                from,
+                to,page,
+                size);
+    }
+
+    @PostMapping("filter/export/excel")
+    public void GetExcelReport(@RequestBody ColumnRequest columnRequest , HttpServletResponse response) throws IOException {
+        Workbook wb = trendService.GetExcelReport(columnRequest);
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=orders.xlsx");
+        wb.write(response.getOutputStream());
+        wb.close();
+    }
 
 }
+

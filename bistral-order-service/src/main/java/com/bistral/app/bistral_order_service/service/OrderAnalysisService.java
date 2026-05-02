@@ -1,16 +1,15 @@
 package com.bistral.app.bistral_order_service.service;
 
 
-import com.bistral.app.bistral_order_service.dtos.KpiDTO;
-import com.bistral.app.bistral_order_service.dtos.RecentOrderDto;
-import com.bistral.app.bistral_order_service.dtos.TrendPointDto;
-import com.bistral.app.bistral_order_service.dtos.TrendPointDtoImpl;
+import com.bistral.app.bistral_order_service.dtos.*;
+import com.bistral.app.bistral_order_service.entity.OrderEntity;
 import com.bistral.app.bistral_order_service.repository.OrderAnalysisRepository;
 import com.bistral.app.bistral_order_service.utils.Range;
 import com.bistral.app.bistral_order_service.utils.RangeResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,6 +33,8 @@ public class OrderAnalysisService {
     public List<RecentOrderDto> getRecentOrders(List<UUID> bistroIds) {
         return orderAnalysisRepository.getRecentOrders(bistroIds);
     }
+
+
 
 //    public List<TrendPointDtoImpl> getOrderTrend(List<UUID> bistroIds, Range range) {
 //
