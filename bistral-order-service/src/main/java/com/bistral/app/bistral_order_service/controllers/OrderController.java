@@ -82,9 +82,9 @@ public class OrderController {
         return ResponseEntity.ok(orderResponse);
     }
 
-    @GetMapping("/branch/{branchId}/zone/{zoneId}/order/all")
-    public List<OrderResponse> getActiveOrders(@PathVariable UUID branchId, @PathVariable UUID zoneId) {
-        return orderService.getAllOrderOfBistro(branchId, zoneId);
+    @GetMapping("branch/zone/{zoneId}/active")
+    public List<OrderResponse> getActiveOrders( @PathVariable UUID zoneId) {
+        return orderService.getAllOrderOfBistro(zoneId);
     }
 
 

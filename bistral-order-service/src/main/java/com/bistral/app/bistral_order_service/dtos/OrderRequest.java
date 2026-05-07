@@ -12,10 +12,7 @@ import java.util.UUID;
 @Data
 @Builder
 public class OrderRequest {
-    @NotNull
-    private UUID bistroId;
-    @NotNull
-    private UUID branchId;
+
     @NotNull(message = "table Id can't be null ")
     private  UUID tableId;
     @NotNull

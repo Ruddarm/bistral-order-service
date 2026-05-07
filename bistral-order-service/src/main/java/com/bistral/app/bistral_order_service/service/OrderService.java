@@ -1,5 +1,6 @@
 package com.bistral.app.bistral_order_service.service;
 
+import com.bistral.app.bistral_order_service.contexts.UserContextHolder;
 import com.bistral.app.bistral_order_service.enums.OrderType;
 import com.bistral.app.bistral_order_service.exceptions.CloseOrderException;
 import com.bistral.app.bistral_order_service.mapperInterface.OrderItemMapper;
@@ -40,7 +41,7 @@ public class OrderService {
     public OrderResponse createOrder(OrderRequest orderRequest) {
 
         OrderEntity orderEntity = orderMapper.toOrderEntity(orderRequest);
-        CompletableFuture<BranchResponse> branchResponseCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getBranch(orderRequest.getBistroId(), orderRequest.getBranchId()));
+//        CompletableFuture<BranchResponse> branchResponseCompletableFuture = CompletableFuture.supplyAsync(bistroFeignClient::getBranch);
         orderEntity.setTableNo(orderRequest.getTableNo());
         orderEntity.setTableId(orderRequest.getTableId());
         orderEntity.setDiscount(new BigDecimal(0));
@@ -49,12 +50,13 @@ public class OrderService {
         orderEntity.setTaxAmount(new BigDecimal(0));
         orderEntity.setTaxableAmount(new BigDecimal(0));
         orderEntity.setOrderStatus(OrderStatus.OPEN);
+        orderEntity.setBistroId(UserContextHolder.getAuthContext().getBistroId());
+        orderEntity.setBranchId(UserContextHolder.getAuthContext().getBranchId());
         OrderEntity finalOrderEntity1 = orderEntity;
         CompletableFuture<OrderEntity> orderEntityCompletableFuture = CompletableFuture.supplyAsync(() -> orderRepository.save(finalOrderEntity1));
-        BranchResponse branchResponse = branchResponseCompletableFuture.join();
+        BranchResponse branchResponse = bistroFeignClient.getBranch();
         orderEntity = orderEntityCompletableFuture.join();
         orderEntity.setOrderItemEntityList(new ArrayList<>());
-//        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
         if (!orderEntity.getBranchId().equals(branchResponse.getBranchId())) {
             orderRepository.delete(orderEntity);
             throw new ResourceNotFoundException("Bistro Branch", "Invalid Bistro / Branch id");
@@ -217,11 +219,15 @@ public class OrderService {
         return orderEntity;
     }
 
-    public List<OrderResponse> getAllOrderOfBistro(UUID branchId, UUID zoneId) {
-        CompletableFuture<List<TableResponse>> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(branchId, zoneId));
-        List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(branchId, OrderStatus.OPEN);
+    public List<OrderResponse> getAllOrderOfBistro(UUID zoneId) {
+
+        System.err.println("Auth context inside service " + UserContextHolder.getAuthContext());
+//        List<TableResponse> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(zoneId));
+        List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(
+                UserContextHolder
+                        .getAuthContext().getBranchId(), OrderStatus.OPEN);
         Map<UUID, OrderEntity> orderMap = orderEntityList.stream().collect(Collectors.toMap(OrderEntity::getTableId, o -> o));
-        return listCompletableFuture.join().stream()
+        return bistroFeignClient.getTables(zoneId).stream()
                 .map(tableResponse -> {
                     OrderEntity orderEntity = orderMap.get(tableResponse.getTableId());
                     if (orderEntity == null) {
@@ -230,7 +236,8 @@ public class OrderService {
                                 .tableNo(tableResponse.getTableNo())
                                 .taxAmount(new BigDecimal(0))
                                 .taxableAmount(new BigDecimal(0))
-                                .branchId(branchId)
+                                .branchId(UserContextHolder
+                                        .getAuthContext().getBranchId())
                                 .discount(BigDecimal.ZERO)
                                 .orderStatus(OrderStatus.VACANT)
                                 .orderItemList(new ArrayList<>())

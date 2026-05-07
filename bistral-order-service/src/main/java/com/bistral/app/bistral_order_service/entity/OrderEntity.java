@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -38,8 +39,11 @@ public class OrderEntity {
     private UUID tableId;
     @Column(nullable = false)
     private UUID branchId;
+
     private int tableNo;
-    private long orderNumber;
+
+    //    @Column(name = )
+//    private long orderNumber;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal taxAmount;
     @Column(nullable = false, precision = 10, scale = 2)
@@ -48,19 +52,36 @@ public class OrderEntity {
     private BigDecimal taxableAmount;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal payableAmount;
+
+
     private OrderType orderType;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private OrderStatus orderStatus = OrderStatus.OPEN;
+
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
+
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, orphanRemoval = true, cascade = {CascadeType.ALL})
     private Set<PaymentEntity> paymentEntities = new HashSet<>();
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemEntity> orderItemEntityList = new ArrayList<>();
+//
+//    @Column(nullable = false,updatable = false)
+//    @CreationTimestamp
+//    private LocalDateTime createdAt;
+//
+//    @Column(nullable = false,updatable = false)
+//    private UUID createdBy;
+//
+//    @Column
+//    private UUID updatedBy;
+//
+//    @Column
+//    @UpdateTimestamp
+//    private LocalDateTime updatedAt;
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
     public void reCalcTotals() {
         this.taxableAmount = orderItemEntityList.stream()
                 .map(OrderItemEntity::getTotalPrice)
