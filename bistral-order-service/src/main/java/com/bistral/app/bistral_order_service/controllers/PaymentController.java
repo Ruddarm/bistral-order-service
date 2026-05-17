@@ -10,12 +10,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/payment")
+@RequestMapping("/orders/payment")
 public class PaymentController {
 
     private final PaymentService paymentService;
 
-    @PostMapping("/order")
+    @PostMapping("")
     public ResponseEntity<PaymentResponse> makePayment(@RequestBody PaymentRequest paymentRequest) {
         PaymentEntity paymentEntity = paymentService.makePayment(paymentRequest);
         return ResponseEntity.ok(new PaymentResponse(paymentEntity.getPaymentId(), paymentEntity.getOrder().getOrderId(), paymentEntity.getPaymentStatus(), paymentEntity.getAmount(),paymentEntity.getPaymentMode()));

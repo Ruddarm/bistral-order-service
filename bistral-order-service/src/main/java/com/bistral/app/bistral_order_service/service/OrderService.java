@@ -156,12 +156,15 @@ public class OrderService {
         List<UUID> variantIds = bulkOrderItemRequest.items().stream()
                 .map(OrderItemRequest::getVariantId).toList();
         MenuItemVariantBulkRequest menuItemVariantBulkRequest = new MenuItemVariantBulkRequest(bulkOrderItemRequest.items().getFirst().getMenuItemId(), variantIds);
-        CompletableFuture<List<MenuItemVariantResponse>> futureMenus = CompletableFuture
-                .supplyAsync(() -> bistroFeignClient.getMenuItems(menuItemVariantBulkRequest.menuItemId(), menuItemVariantBulkRequest));
+        List<MenuItemVariantResponse> itemVariantResponseList = bistroFeignClient.getMenItemVariantsResponse(ItemVariantFilterDto
+                .builder()
+                .variantIds(bulkOrderItemRequest.items()
+                        .stream().map(OrderItemRequest::getVariantId).toList())
+                .build()).getData();
         OrderEntity orderEntity = getOrderByOrderId(bulkOrderItemRequest.orderId());
         if (orderEntity.getOrderStatus() == OrderStatus.CLOSED)
             throw new CloseOrderException("Can not Add or Modify Closed Orders", 101);
-        Map<UUID, MenuItemVariantResponse> itemVariantResponses = futureMenus.join().stream().collect(Collectors.toMap(MenuItemVariantResponse::getVariantId, item -> item, (a, b) -> a));
+        Map<UUID, MenuItemVariantResponse> itemVariantResponses = itemVariantResponseList.stream().collect(Collectors.toMap(MenuItemVariantResponse::getVariantId, item -> item, (a, b) -> a));
         List<OrderItemEntity> newOrderItem = new ArrayList<>();
         for (int i = 0; i < bulkOrderItemRequest.items().size(); i++) {
             OrderItemRequest orderItemRequest = bulkOrderItemRequest.items().get(i);
@@ -192,7 +195,6 @@ public class OrderService {
         return orderResponse;
     }
 
-    //Remove Item from the given order
     @Transactional()
     public OrderResponse deleteItemFromOrder(UUID orderId, UUID orderItemId) {
         OrderEntity orderEntity = getOrderByOrderId(orderId);
@@ -206,22 +208,18 @@ public class OrderService {
     }
 
     public OrderEntity getOrderByOrderId(UUID orderId) {
-//        if (activeOrderMap.containsKey(orderId)) return activeOrderMap.get(orderId);
         OrderEntity orderEntity = orderRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "Order not found with Order Id : " + orderId));
-//        activeOrderMap.put(orderEntity.getOrderId(), orderEntity);
         return orderEntity;
     }
 
     public OrderEntity saveOrder(OrderEntity order) {
         OrderEntity orderEntity = orderRepository.save(order);
-//        activeOrderMap.put(order.getOrderId(), orderEntity);
         return orderEntity;
     }
 
     public List<OrderResponse> getAllOrderOfBistro(UUID zoneId) {
 
-        System.err.println("Auth context inside service " + UserContextHolder.getAuthContext());
 //        List<TableResponse> listCompletableFuture = CompletableFuture.supplyAsync(() -> bistroFeignClient.getTables(zoneId));
         List<OrderEntity> orderEntityList = orderRepository.findByBranchIdAndOrderStatus(
                 UserContextHolder
@@ -257,16 +255,5 @@ public class OrderService {
                 .toList();
     }
 
-//    public List<OrderResponse> getOrderWithFilter(List<UUID> bistroId, List<UUID> branchId,
-//                                                  BigDecimal minPayableAmount,
-//                                                  BigDecimal maxPayableAmount,
-//                                                  LocalDate from,
-//                                                  LocalDate to,
-//                                                  int Page,
-//                                                  int size
-//    ) {
-//        List<OrderEntity> order = orderRepository.
-//
-//    }
 
 }
